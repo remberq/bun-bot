@@ -20,6 +20,7 @@ type SessionData = ScenesSessionData & {
     gigaRole: string;
     gigaMessages: IGigaChatMessages[];
     activeScene: SCENE | null;
+    controller?: AbortController;
 }
 
 export type BotContext = Context & SessionFlavor<SessionData> & ScenesFlavor

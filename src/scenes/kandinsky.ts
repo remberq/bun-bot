@@ -16,6 +16,7 @@ kandinskyScene.always().setup(async (scene) => {
      * Hears
      */
     scene.hears('Завершить магию', async (ctx) => {
+        ctx.session.controller?.abort()
         ctx.scene.goto(KANDINSKY_LABELS.END)
     })
     scene.hears('Продолжить магию', async (ctx) => {
@@ -56,58 +57,65 @@ kandinskyScene.label(KANDINSKY_LABELS.WAIT_REQUEST).step(async (ctx) => {
     })
 })
 kandinskyScene.wait(KANDINSKY_LABELS.PROMPT_TEXT).on("message:text", async (ctx) => {
-    if (ctx.message.text.startsWith('/') || ctx.message.text === 'Завершить') {
-        return;
-    }
     ctx.session.prompt = ctx.message.text
     ctx.scene.resume()
 })
 
 kandinskyScene.label(KANDINSKY_LABELS.WAIT_PROMPT).step(async (ctx) => {
     const styles = await KandinskyServices.getStyles()
-    const inline = setupKeyboard([...styles.map((style) => style.title), ...END_CHAT])
+    const keyboard = setupKeyboard([...styles.map((style) => style.title), ...END_CHAT])
     ctx.session.allStyle = styles.map((style) => ({name: style.name, title: style.title}))
 
     await ctx.reply("В каком стиле?", {
         reply_markup: {
-            ...inline,
+            ...keyboard,
             one_time_keyboard: true,
         }
     })
 })
 
-kandinskyScene.wait(KANDINSKY_LABELS.PROMPT_STYLE).on('message:text', async (ctx) => {
+kandinskyScene.wait(KANDINSKY_LABELS.WAIT_STYLE).on('message:text', async (ctx) => {
     const styleTitleArray = ctx.session.allStyle?.map((style) => style.title) ?? []
-
-    if (ctx.message.text.startsWith('/') || ctx.message.text === 'Завершить') {
-        return;
-    }
 
     if (!styleTitleArray.includes(ctx.message.text)) {
         await ctx.reply('Пожалуйста, введите способ из предложенных вариантов')
         return;
     }
 
-    const thinkMessage = await ctx.reply('Добавил в очередь на генерацию изображения. Пожалуйста, дождитесь ответа!')
-    const styleName = ctx.session.allStyle?.find((style) => style.title === ctx.message?.text)
+    ctx.scene.resume()
+})
 
-    const picBuffer = await KandinskyServices.getKandinsky({
-        prompt: ctx.session.prompt,
-        style: styleName?.name,
-    })
 
-    const mediaGroup = picBuffer.map((pic) => {
-        return InputMediaBuilder.photo(new InputFile(pic))
-    })
-    await ctx.api.deleteMessage(thinkMessage.chat.id, thinkMessage.message_id)
-    await ctx.replyWithMediaGroup(mediaGroup)
-    await ctx.reply(`Ваш запрос: ${ctx.session.prompt} в стиле: ${styleName?.title} - готов!`)
-    await ctx.reply('Давайте еще что-нибудь нарисуем?', {
+kandinskyScene.label(KANDINSKY_LABELS.PROMPT_STYLE).step(async (ctx) => {
+    const thinkMessage = await ctx.reply('Добавил в очередь на генерацию изображения. Пожалуйста, дождитесь ответа!', {
         reply_markup: {
-            ...setupKeyboard(NEW_REQUEST),
-            one_time_keyboard: true
+            remove_keyboard: true
         }
     })
+    const styleName = ctx.session.allStyle?.find((style) => style.title === ctx.message?.text)
+    KandinskyServices.getKandinsky({
+        prompt: ctx.session.prompt,
+        style: styleName?.name,
+    }).then(async (picBuffer) => {
+        const mediaGroup = picBuffer.map((pic) => {
+            return InputMediaBuilder.photo(new InputFile(pic))
+        })
+        await ctx.api.deleteMessage(thinkMessage.chat.id, thinkMessage.message_id)
+        await ctx.replyWithMediaGroup(mediaGroup)
+        await ctx.reply(`Ваш запрос: ${ctx.session.prompt} в стиле: ${styleName?.title} - готов!`)
+        await ctx.reply('Давайте еще что-нибудь нарисуем?', {
+            reply_markup: {
+                ...setupKeyboard(NEW_REQUEST),
+                one_time_keyboard: true
+            }
+        })
+    })
+})
+
+kandinskyScene.wait(KANDINSKY_LABELS.WAIT_GEN).on('message:text', async (ctx) => {
+    if (ctx.message.text) {
+        await ctx.reply('Пожалуйста, дождитесь генерации ответа!')
+    }
 })
 
 kandinskyScene.label(KANDINSKY_LABELS.END).step(async (ctx) => {

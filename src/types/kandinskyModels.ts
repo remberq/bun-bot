@@ -27,6 +27,7 @@ export type IPropsGenerate = {
     width?: number;
     height?: number;
     style?: string;
+    controller?: AbortController;
 }
 
 export type TStylesResponse = {

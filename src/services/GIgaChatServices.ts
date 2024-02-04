@@ -15,7 +15,7 @@ export class GigaChatServices extends RequestServices {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Accept': 'application/json',
-                Authorization: 'Basic MjRiOTc3MjgtYmMyNS00YjgxLWI1YmQtNGQyZjljNzBjMGFjOjViODI4MzQ4LTdhMzQtNDNmNi1hNjU4LWRiNjliMDMwODIwZg==',
+                Authorization: 'Basic ' + process.env.GIGA_TOKEN,
                 RqUID
             },
         };

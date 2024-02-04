@@ -60,10 +60,6 @@ gigaChatScene.label(GIGA_LABELS.CHANGE_ROLE).step(async (ctx) => {
 })
 
 gigaChatScene.wait(GIGA_LABELS.PROMPT_ROLE).on("message:text", async (ctx) => {
-    if (ctx.message.text.startsWith('/')) {
-        return;
-    }
-
     const roleContent: IGigaChatMessages = {
         role: 'system',
         content: ctx.message.text
@@ -77,9 +73,6 @@ gigaChatScene.wait(GIGA_LABELS.PROMPT_ROLE).on("message:text", async (ctx) => {
 
 gigaChatScene.label(GIGA_LABELS.PROMPT_TEXT).step(async (ctx) => {
     await ctx.reply(`Принято! Теперь я постараюсь отвечать в роли: ${ctx.session.gigaRole}`)
-})
-
-gigaChatScene.label(GIGA_LABELS.QUESTION_PROMPT).step(async (ctx) => {
     const board = setupKeyboard(KEYBOARD_TEXT)
     await ctx.reply("Что бы вы хотели обсудить?", {
         reply_markup: {
@@ -89,21 +82,15 @@ gigaChatScene.label(GIGA_LABELS.QUESTION_PROMPT).step(async (ctx) => {
 })
 
 
-gigaChatScene.wait(GIGA_LABELS.WAIT_PROMPT).setup(async (scene) => {
-    scene.on("message:text", async (ctx) => {
-        if (ctx.message.text.startsWith('/')) {
-            return;
-        }
-        const userRoleContent: IGigaChatMessages =  {
-            role: 'user',
-            content: ctx.message.text
-        }
-        ctx.session.gigaMessages = [...ctx.session.gigaMessages, userRoleContent]
-        const botThinkMessage = await ctx.reply('Придумываю ответ...')
-        try {
-            const response = await GigaChatServices.getGigaChat({
-                messages: ctx.session.gigaMessages,
-            })
+gigaChatScene.wait(GIGA_LABELS.WAIT_PROMPT).on('message:text' ,async (ctx) => {
+    const userRoleContent: IGigaChatMessages =  {
+        role: 'user',
+        content: `${ctx.message?.text}`
+    }
+    ctx.session.gigaMessages = [...ctx.session.gigaMessages, userRoleContent]
+    const botThinkMessage = await ctx.reply('Придумываю ответ...')
+    GigaChatServices.getGigaChat({messages: ctx.session.gigaMessages})
+        .then(async (response) => {
             if (response?.choices[0].message) {
                 await ctx.api.deleteMessage(botThinkMessage.chat.id, botThinkMessage.message_id)
                 void ctx.reply(`${response.choices[0].message.content}`, {
@@ -111,17 +98,17 @@ gigaChatScene.wait(GIGA_LABELS.WAIT_PROMPT).setup(async (scene) => {
                         ...setupKeyboard(KEYBOARD_TEXT),
                     },
                     parse_mode: 'Markdown',
-                    reply_to_message_id: ctx.message.message_id
+                    reply_to_message_id: ctx.message?.message_id
                 })
                 ctx.session.gigaMessages = [...ctx.session.gigaMessages, response?.choices[0].message]
             } else {
                 throw Error('Ошибка в запросе')
             }
-        } catch (err) {
+        })
+        .catch(async () => {
             await ctx.api.deleteMessage(botThinkMessage.chat.id, botThinkMessage.message_id)
             await ctx.reply('Произошла ошибка, отправьте сообщение снова!')
-        }
-    })
+        })
 })
 
 gigaChatScene.label(GIGA_LABELS.END).step(async (ctx) => {
