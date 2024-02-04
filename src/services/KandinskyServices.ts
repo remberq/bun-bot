@@ -1,71 +1,42 @@
 import axios, {AxiosResponse} from "axios";
 import FormData from "form-data";
-import fs from "fs";
+import {
+    IPropsGenerate,
+    TCheckGenerationResponse,
+    TGenerateResponse,
+    TModelResponse,
+    TStylesResponse
+} from "../types/kandinskyModels.ts";
+import {RequestServices} from "./RequestServices.ts";
 
-type TModelResponse = {
-    id: number;
-    name: string;
-    version: number;
-    type: string;
+const HEADERS = {
+    'X-Key': `Key ${process.env.KANDINSKY_TOKEN}`,
+    'X-Secret': `Secret ${process.env.KANDINSKY_SECRET}`
 }
+export class KandinskyServices extends RequestServices{
 
-type TGenerateResponse = {
-    status: string;
-    uuid: string;
-}
-
-type TCheckGenerationResponse = {
-    uuid: string;
-    status: 'INITIAL' | 'PROCESSING' | 'DONE' | 'FAIL';
-    images: [string];
-    errorDescription: string;
-    censored: boolean;
-}
-
-export type IPropsGenerate = {
-    prompt: string;
-    imageCount?: number;
-    width?: number;
-    height?: number;
-    style?: string;
-}
-
-export type TStylesResponse = {
-    name: string;
-    title: string;
-    titleEn?: string;
-    image?: string;
-}
-
-export class KandinskyServices {
-    static X_KEY = `Key ${process.env.KANDINSKY_TOKEN}`;
-    static X_SECRET = `Secret ${process.env.KANDINSKY_SECRET}`;
-    static HEADERS = {
-        'X-Key': this.X_KEY,
-        'X-Secret': this.X_SECRET
-    };
-    static MODEL_ID: number;
-    static UUID: string;
-    static PICTURE: string;
-
-    public static async getAuth() {
+    constructor() {
+        super();
+    }
+    static async getAuth() {
         try {
             const response: AxiosResponse<TModelResponse[]> = await axios
                 .get(process.env.KANDINSKY_BASE_URL + 'models', {
-                    headers: this.HEADERS
+                    headers: HEADERS
                 })
-            this.MODEL_ID = response.data[0].id
+            return response.data[0].id
         } catch (error) {
             console.log(error, 'Error response')
         }
     }
 
-    public static async generate({
-     prompt,
-     imageCount = 1,
-     width = 1024,
-     height = 1023,
-     style = 'DEFAULT'
+    static async generate({
+        prompt,
+        modelId,
+        imageCount = 1,
+        width = 1024,
+        height = 1023,
+        style = 'DEFAULT'
      }: IPropsGenerate) {
         const params = {
             type: 'GENERATE',
@@ -79,7 +50,7 @@ export class KandinskyServices {
         }
 
         const formData = new FormData()
-        const modelIdData = { value: this.MODEL_ID, options: {contentType: undefined}}
+        const modelIdData = { value: modelId, options: {contentType: undefined}}
         const paramsData = { value: JSON.stringify(params), options: {contentType: 'application/json'} }
         formData.append('model_id', modelIdData.value, modelIdData.options)
         formData.append('params', paramsData.value, paramsData.options)
@@ -90,35 +61,36 @@ export class KandinskyServices {
                 formData, {
                     headers: {
                         ...formData.getHeaders(),
-                        ...this.HEADERS
+                        ...HEADERS
                     },
                     // @ts-ignore
                     'Content-Type': 'multipart/form-data'
                 })
             const data = response.data
-            this.UUID = data.uuid
+            return data.uuid
         } catch (err) {
             console.log('This Error', err)
         }
     }
 
-    public static async checkGeneration(
+    static async checkGeneration(
         requestId: string,
         attempts = 10,
-        delay = 10
+        delay = 15
     ) {
         while (attempts > 0) {
             try {
                 const response: AxiosResponse<TCheckGenerationResponse> = await axios.get(
                     process.env.KANDINSKY_BASE_URL + `text2image/status/${requestId}`,
                     {
-                        headers: this.HEADERS
-                    }
+                        headers: HEADERS,
+                    },
                 )
 
                 const data = response.data
                 if (data.status === 'DONE') {
-                    this.PICTURE = data.images[0]
+                    console.log('Картинка готова!')
+                    return data.images;
                 }
             } catch (error) {
                 console.log(error)
@@ -130,12 +102,17 @@ export class KandinskyServices {
     }
 
     public static async getKandinsky(generateData: IPropsGenerate) {
-        await this.getAuth()
-        await this.generate(generateData)
-        await this.checkGeneration(this.UUID)
-        const pic = this.PICTURE.replace(/^data:image\/w+;base64,/, '')
-
-        return Buffer.from(pic, 'base64')
+        const modelId = await this.withRetry(this.getAuth)()
+        const requestUuid = await this.withRetry(this.generate)({...generateData, modelId})
+        if (requestUuid) {
+            const pictures = await this.withRetry(this.checkGeneration)(requestUuid)
+            return pictures?.map((picture) => {
+                const pic = picture.replace(/^data:image\/w+;base64,/, '')
+                return Buffer.from(pic, 'base64')
+            }) ?? []
+        } else {
+            throw Error('Не найден REQUEST_ID!')
+        }
     }
 
     public static async getStyles() {

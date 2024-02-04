@@ -1,31 +1,49 @@
 import { Bot , Context, session, SessionFlavor } from "grammy";
 import { ScenesSessionData, ScenesFlavor } from "grammy-scenes"
 import {scenes} from "./scenes/scene.ts";
+import {SCENE} from "./types/models.ts";
+import {IGigaChatMessages} from "./types/gigaModels.ts";
 
 type SessionData = ScenesSessionData & {
+    temp?: number;
     prompt: string;
-    style: string;
-    count: number;
+    isOver: boolean;
+    style: {
+        title?: string;
+        name: string;
+    };
+    allStyle?: {
+        title?: string;
+        name: string;
+    }[];
+    gigaPrompt: Partial<IGigaChatMessages>;
+    gigaRole: string;
+    gigaMessages: IGigaChatMessages[];
+    activeScene: SCENE | null;
 }
 
 export type BotContext = Context & SessionFlavor<SessionData> & ScenesFlavor
 
 const bot = new Bot<BotContext>(process.env.TOKEN)
 
-function initial(): SessionData {
-    return { style: 'DEFAULT', prompt: '' , count: 1};
+export function initial(): SessionData {
+    return {
+        isOver: false,
+        style: {
+            name: 'DEFAULT',
+            title: 'Свой стиль'
+        },
+        prompt: '' ,
+        gigaPrompt: {},
+        gigaRole: '',
+        gigaMessages: [],
+        activeScene: null
+    };
 }
 
 bot.use(session({initial}))
 
-// Inject ctx.scenes
 bot.use(scenes.manager())
 
-bot.command("start", async (ctx) => {
-    await ctx.reply(`Welcome here.`)
-    await ctx.scenes.enter("main")
-})
-
-// Actually run scenes
 bot.use(scenes)
 export default bot;

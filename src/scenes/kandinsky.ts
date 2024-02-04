@@ -1,134 +1,123 @@
 import { Scene } from "grammy-scenes"
+import {BotContext} from "../bot"
+import { InputFile, InputMediaBuilder} from "grammy";
+import { KandinskyServices} from "../services/KandinskyServices.ts";
+import {setupKeyboard} from "../bot/setupBotKeyboards.ts";
+import { unknownCommandText} from "./sceneUtils.ts";
+import {COMMAND, KANDINSKY_LABELS, SCENE, SLASH_COMMAND} from "../types/models.ts";
 
-import { BotContext } from "../bot"
-import {InlineKeyboard, InputFile, Keyboard} from "grammy";
-import {IPropsGenerate, KandinskyServices} from "../services/KandinskyServices.ts";
-import {setupInlineKeyboard} from "../bot/botKeyboardSetup.ts";
+const END_CHAT = ['Завершить магию']
+const NEW_REQUEST = ['Продолжить магию',...END_CHAT]
 
-export const mainScene = new Scene<BotContext>("main")
+export const kandinskyScene = new Scene<BotContext>(SCENE.KANDINSKY)
 
-mainScene.step(async (ctx) => {
-    await ctx.reply("Введите ваш запрос:")
+kandinskyScene.always().setup(async (scene) => {
+    /**
+     * Hears
+     */
+    scene.hears('Завершить магию', async (ctx) => {
+        ctx.scene.goto(KANDINSKY_LABELS.END)
+    })
+    scene.hears('Продолжить магию', async (ctx) => {
+        ctx.scene.goto(KANDINSKY_LABELS.WAIT_REQUEST)
+    })
+    /**
+     * On
+     */
+    scene.on('message:sticker', async (ctx) => {
+        await ctx.reply("Только не стикеры, пожалуйста, только не они!!!")
+    })
+    /**
+     * Command
+     */
+    scene.command(COMMAND.END_SCENE, async (ctx) => {
+        ctx.scene.goto(KANDINSKY_LABELS.END)
+    })
+    scene.command(COMMAND.GIGA_CHAT, async (ctx) => {
+        ctx.scene.goto(KANDINSKY_LABELS.CALL_GIGA)
+    })
+})
+kandinskyScene.always().do(async (ctx) => {
+    await unknownCommandText(ctx)
 })
 
-// As the flow comes to wait(), the execution will stop.
-// Next Telegram updates will be passed to the inner middleware.
-// The inner middleware should call ctx.scene.resume() to proceed to the next scene step.
-// Make sure to use unique label in each wait() block.
-mainScene.wait("prompt").on("message:text", async (ctx) => {
+kandinskyScene.label(KANDINSKY_LABELS.START).step(async (ctx) => {
+    await ctx.reply(`Добро пожаловать в чат с API Kandinsky!`)
+})
+
+kandinskyScene.label(KANDINSKY_LABELS.WAIT_REQUEST).step(async (ctx) => {
+    const board = setupKeyboard(END_CHAT)
+
+    await ctx.reply("Введите ваш запрос:", {
+        reply_markup: {
+            ...board,
+            one_time_keyboard: true
+        }
+    })
+})
+kandinskyScene.wait(KANDINSKY_LABELS.PROMPT_TEXT).on("message:text", async (ctx) => {
+    if (ctx.message.text.startsWith('/') || ctx.message.text === 'Завершить') {
+        return;
+    }
     ctx.session.prompt = ctx.message.text
     ctx.scene.resume()
 })
 
-mainScene.step(async (ctx) => {
-    const inline = new InlineKeyboard()
-        .text('1', JSON.stringify(1))
-        .text('2', JSON.stringify(2))
-        .row()
-        .text('3', JSON.stringify(3))
-        .text('4', JSON.stringify(4))
-
-    await ctx.reply("Сколько картинок показать?", {
-        reply_markup: {
-            ...inline,
-            remove_keyboard: true
-        }
-    })
-})
-
-mainScene.wait('count').setup((scene) => {
-    scene.on('callback_query:data', async (ctx) => {
-        ctx.session.count = JSON.parse(ctx.callbackQuery.data)
-        ctx.scene.resume()
-        void ctx.answerCallbackQuery()
-    })
-})
-
-// Add more steps...
-mainScene.step(async (ctx) => {
+kandinskyScene.label(KANDINSKY_LABELS.WAIT_PROMPT).step(async (ctx) => {
     const styles = await KandinskyServices.getStyles()
-    const inline = setupInlineKeyboard(styles, 2)
+    const inline = setupKeyboard([...styles.map((style) => style.title), ...END_CHAT])
+    ctx.session.allStyle = styles.map((style) => ({name: style.name, title: style.title}))
 
     await ctx.reply("В каком стиле?", {
         reply_markup: {
             ...inline,
-            remove_keyboard: true
+            one_time_keyboard: true,
         }
     })
 })
 
-mainScene.wait("style").on("callback_query:data", async (ctx) => {
-    ctx.session.style = ctx.callbackQuery.data
-    const inline = new InlineKeyboard()
-        .text('Отправить запрос', 'GET')
-        .text('Отмена','CANCEL')
+kandinskyScene.wait(KANDINSKY_LABELS.PROMPT_STYLE).on('message:text', async (ctx) => {
+    const styleTitleArray = ctx.session.allStyle?.map((style) => style.title) ?? []
 
-    await ctx.reply('Выберите вариант', {
+    if (ctx.message.text.startsWith('/') || ctx.message.text === 'Завершить') {
+        return;
+    }
+
+    if (!styleTitleArray.includes(ctx.message.text)) {
+        await ctx.reply('Пожалуйста, введите способ из предложенных вариантов')
+        return;
+    }
+
+    const thinkMessage = await ctx.reply('Добавил в очередь на генерацию изображения. Пожалуйста, дождитесь ответа!')
+    const styleName = ctx.session.allStyle?.find((style) => style.title === ctx.message?.text)
+
+    const picBuffer = await KandinskyServices.getKandinsky({
+        prompt: ctx.session.prompt,
+        style: styleName?.name,
+    })
+
+    const mediaGroup = picBuffer.map((pic) => {
+        return InputMediaBuilder.photo(new InputFile(pic))
+    })
+    await ctx.api.deleteMessage(thinkMessage.chat.id, thinkMessage.message_id)
+    await ctx.replyWithMediaGroup(mediaGroup)
+    await ctx.reply(`Ваш запрос: ${ctx.session.prompt} в стиле: ${styleName?.title} - готов!`)
+    await ctx.reply('Давайте еще что-нибудь нарисуем?', {
         reply_markup: {
-            ...inline,
-            remove_keyboard: true
-        },
-    })
-    // Proceed to the next step.
-    ctx.scene.resume()
-    void ctx.answerCallbackQuery()
-})
-
-mainScene.wait('result').setup((scene) => {
-    scene.on('callback_query:data', async (ctx) => {
-        const data = ctx.callbackQuery.data
-        if (data === 'CANCEL') {
-            void ctx.reply('Запрос отменен!')
-            void ctx.answerCallbackQuery()
-            return;
+            ...setupKeyboard(NEW_REQUEST),
+            one_time_keyboard: true
         }
-        void ctx.answerCallbackQuery()
-        void ctx.reply('Ваш запрос обрабатывается...')
-        const picture = await KandinskyServices.getKandinsky({
-            prompt: ctx.session.prompt,
-            style: ctx.session.style,
-            imageCount: ctx.session.count
-        })
-        void ctx.replyWithPhoto(new InputFile(picture))
     })
 })
 
-// // Mark position in the scene to be able to jump to it (see below).
-// mainScene.label("start")
-//
-// // A scene may unconditionally call a nested scene.
-// // See sample captcha implementation below.
-// mainScene.call("captcha")
+kandinskyScene.label(KANDINSKY_LABELS.END).step(async (ctx) => {
+    await ctx.reply(`Чат завершен! Для начала нового диалога введите команду 
+        - ${SLASH_COMMAND.KANDINSKY}`, {
+        reply_markup: {
+            remove_keyboard: true
+        }
+    })
+    ctx.scene.exit()
+})
 
-// Please add step label for the first step after call()
-// mainScene.label("after_captcha").step(async (ctx) => {
-//     await ctx.reply(`Please choose:`, {
-//         reply_markup: {
-//             inline_keyboard: [
-//                 [
-//                     { text: "Start over", callback_data: "start" },
-//                     { text: "Add item", callback_data: "add_item" },
-//                     { text: "Exit", callback_data: "exit" },
-//                 ],
-//             ],
-//         },
-//     })
-// })
-//
-// mainScene.wait("menu").on("callback_query:data", async (ctx) => {
-//     await ctx.answerCallbackQuery()
-//     const choice = ctx.callbackQuery.data
-//     if (choice === "start") {
-//         // Jump to the label marked above.
-//         ctx.scene.goto("start")
-//     } else if (choice === "add_item") {
-//         // Conditionally call a nested scene.
-//         // Implies automatic resume after the nested scene completes.
-//         ctx.scene.call("add_item")
-//     } else if (choice === "exit") {
-//         // Exit scene, don't call next middleware.
-//         ctx.scene.exit()
-//     }
-// })
-
-mainScene.step((ctx) => ctx.reply(`Main scene finished`))
+kandinskyScene.label(KANDINSKY_LABELS.CALL_GIGA).call(SCENE.GIGA_CHAT)
