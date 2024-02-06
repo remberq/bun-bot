@@ -6,7 +6,7 @@ import {setupBotCatchListener} from "./bot/setupBotCatchListener.ts";
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0
 
 const startBot = () => {
-    console.log('Bot is running...!')
+    console.log('Bot is running....!')
     void bot.start()
 }
 export const botSetup = () => {
