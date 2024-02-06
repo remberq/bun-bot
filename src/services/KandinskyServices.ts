@@ -56,8 +56,10 @@ export class KandinskyServices extends RequestServices{
         formData.append('params', paramsData.value, paramsData.options)
 
         try {
-            const response: AxiosResponse<TGenerateResponse> = await axios.post(
+            const response:
+                AxiosResponse<TGenerateResponse> = await axios.post(
                 process.env.KANDINSKY_BASE_URL + 'text2image/run',
+
                 formData, {
                     headers: {
                         ...formData.getHeaders(),
@@ -66,7 +68,9 @@ export class KandinskyServices extends RequestServices{
                     // @ts-ignore
                     'Content-Type': 'multipart/form-data'
                 })
+
             const data = response.data
+
             return data.uuid
         } catch (err) {
             console.log('This Error', err)
@@ -103,11 +107,14 @@ export class KandinskyServices extends RequestServices{
 
     public static async getKandinsky(generateData: IPropsGenerate) {
         const modelId = await this.withRetry(this.getAuth)()
+
         const requestUuid = await this.withRetry(this.generate)({...generateData, modelId})
+
         if (requestUuid) {
             const pictures = await this.withRetry(this.checkGeneration)(requestUuid)
             return pictures?.map((picture) => {
                 const pic = picture.replace(/^data:image\/w+;base64,/, '')
+
                 return Buffer.from(pic, 'base64')
             }) ?? []
         } else {
@@ -116,7 +123,8 @@ export class KandinskyServices extends RequestServices{
     }
 
     public static async getStyles() {
-        const response: AxiosResponse<TStylesResponse[]> = await axios.get('https://cdn.fusionbrain.ai/static/styles/api')
+        const response: AxiosResponse<TStylesResponse[]> =
+            await axios.get('https://cdn.fusionbrain.ai/static/styles/api')
 
         return response.data
     }
