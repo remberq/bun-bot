@@ -3,7 +3,9 @@ export enum COMMAND {
     KANDINSKY = 'kandinsky',
     GIGA_CHAT = 'giga_chat',
     HELP = 'help',
-    END_SCENE = 'end'
+    END_SCENE = 'end',
+    EVENT = 'event',
+    GET_CARDS = 'get_cards'
 }
 
 export enum SLASH_COMMAND {
@@ -11,7 +13,9 @@ export enum SLASH_COMMAND {
     KANDINSKY = '/kandinsky',
     GIGA_CHAT = '/giga_chat',
     HELP = '/help',
-    END_SCENE = '/end'
+    END_SCENE = '/end',
+    EVENT = '/event',
+    GET_CARDS = '/get_cards'
 }
 
 export enum GIGA_LABELS {
@@ -39,7 +43,29 @@ export enum KANDINSKY_LABELS {
     END = 'END'
 }
 
+export enum EVENT_LABELS {
+    START = 'START',
+    CHOOSE_EVENT_THEME = 'CHOOSE_EVENT_THEME',
+    WAIT_CHOOSE_THEME = 'WAIT_CHOOSE_THEME',
+    WAIT_USER_ANSWER = 'WAIT_USER_ANSWER',
+    CHOOSE_NAME = 'CHOOSE_NAME',
+    WAIT_CHOOSE_NAME = 'WAIT_CHOOSE_NAME',
+    WAIT_CHOOSE_NAME_ANSWER = 'WAIT_CHOOSE_NAME_ANSWER',
+    START_PROMPT_TEXT = 'START_PROMPT_TEXT',
+    WAIT_PROMPT_TEXT = 'WAIT_PROMPT_TEXT',
+    WAIT_PROMPT_ANSWER = 'WAIT_PROMPT_ANSWER',
+    GET_AI_RESPONSE = 'GET_AI_RESPONSE',
+    CHOOSE_LOGIN = 'CHOOSE_LOGIN',
+    WAIT_LOGIN = 'WAIT_LOGIN',
+    WITH_ANONYMITY = 'WITH_ANONYMITY',
+    WAIT_ANONYMITY_ANSWER = 'WAIT_ANONYMITY_ANSWER',
+    SEND_REQUEST = 'SEND_REQUEST',
+    WAIT_GENERATION = 'WAIT_GENERATION',
+    END = 'END'
+}
+
 export enum SCENE {
     GIGA_CHAT = 'GIGA_CHAT',
-    KANDINSKY = 'KANDINSKY'
+    KANDINSKY = 'KANDINSKY',
+    EVENT = 'EVENT'
 }

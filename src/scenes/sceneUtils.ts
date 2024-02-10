@@ -23,6 +23,8 @@ export const unknownCommandText = async (ctx: SceneFlavoredContext<BotContext, u
           
           -- ${SLASH_COMMAND.KANDINSKY}   --  Начать чат с Kandinsky
           
-          -- ${SLASH_COMMAND.END_SCENE}              --  Окончание чата во время общения с ботом`)
+          -- ${SLASH_COMMAND.END_SCENE}              --  Окончание чата во время общения с ботом
+          
+          -- ${SLASH_COMMAND.EVENT}           --  Поздравьте свою половинку`)
     }
 }

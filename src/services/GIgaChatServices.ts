@@ -30,7 +30,6 @@ export class GigaChatServices extends RequestServices {
         } catch (error) {
             console.log(error, 'ERROR')
         }
-
     }
 
     public static async getModels(token: string) {

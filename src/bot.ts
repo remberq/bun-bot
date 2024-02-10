@@ -4,6 +4,17 @@ import {scenes} from "./scenes/scene.ts";
 import {SCENE} from "./types/models.ts";
 import {IGigaChatMessages} from "./types/gigaModels.ts";
 
+interface IEventSession {
+    theme?: string;
+    name?: string;
+    login?: string;
+    picture?: Buffer | 'ERROR';
+    prompt?: string;
+    file_id?: string;
+    isShowWhoSend?: boolean;
+    author?: string;
+}
+
 type SessionData = ScenesSessionData & {
     temp?: number;
     prompt: string;
@@ -21,6 +32,7 @@ type SessionData = ScenesSessionData & {
     gigaMessages: IGigaChatMessages[];
     activeScene: SCENE | null;
     controller?: AbortController;
+    event: IEventSession;
 }
 
 export type BotContext = Context & SessionFlavor<SessionData> & ScenesFlavor
@@ -38,7 +50,8 @@ export function initial(): SessionData {
         gigaPrompt: {},
         gigaRole: '',
         gigaMessages: [],
-        activeScene: null
+        activeScene: null,
+        event: {}
     };
 }
 
