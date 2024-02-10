@@ -1,4 +1,4 @@
-import {BotContext} from "../bot.ts";
+import bot, {BotContext} from "../bot.ts";
 import {Api, Bot, RawApi} from "grammy";
 import {unknownCommandText} from "../scenes/sceneUtils.ts";
 import {SceneFlavoredContext} from "grammy-scenes";

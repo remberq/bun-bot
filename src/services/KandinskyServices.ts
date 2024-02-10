@@ -93,7 +93,8 @@ export class KandinskyServices extends RequestServices{
                     return data.images;
                 }
             } catch (error) {
-                console.log(error)
+                console.log('Ошибка запроса!')
+                return;
             }
             attempts -= 1
             console.log('Еще не готово')
@@ -111,7 +112,7 @@ export class KandinskyServices extends RequestServices{
                 return Buffer.from(pic, 'base64')
             }) ?? []
         } else {
-            throw Error('Не найден REQUEST_ID!')
+            return ''
         }
     }
 
