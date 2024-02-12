@@ -1,23 +1,23 @@
-import {Scene, SceneFlavoredContext} from "grammy-scenes";
-import bot, {BotContext} from "../bot.ts";
+import {Scene} from "grammy-scenes";
+import {BotContext} from "../bot.ts";
 import {EVENT_LABELS, SCENE} from "../types/models.ts";
-import {unknownCommandText} from "./sceneUtils.ts";
+import {handleWriteChatMemberInDB, isThisChatMemberHasNotInDB, unknownCommandText} from "./sceneUtils.ts";
 import {KandinskyServices} from "../services/KandinskyServices.ts";
-import {InputFile, InputMediaBuilder} from "grammy";
+import {InputFile} from "grammy";
 import {setupKeyboard} from "../bot/setupBotKeyboards.ts";
 import {GigaChatServices} from "../services/GIgaChatServices.ts";
 import {IGigaChatMessages} from "../types/gigaModels.ts";
 import {IPropsGenerate} from "../types/kandinskyModels.ts";
-import {eventDataBase, userDataBase} from "../bootstrap.ts";
+import {eventDataBase} from "../bootstrap.ts";
 
 const CANCEL = ['Начать заново']
-const EVENT_THEME = ['Звездные войны', 'Гарри Поттер', 'Крокодил Гена']
+const EVENT_THEME = ['По-джидайски', 'По-славянски', 'По-хулигански']
 const GEN_ANSWERS = ['Продолжить', 'Сгенерировать заново', 'Изменить данные']
 const ANO_ANSWER = ['Указать', 'Не указывать']
 const KANDINSKY_PROMPT = {
-    'Звездные войны': 'Валентинка с розовыми сердечками в стиле "Звездные Войны" с Мастером Йодой на фоне рабочего офиса, на заднем плане kanban доска, на стене висит пазл',
-    'Гарри Поттер': 'Валентинка с розовыми сердечками в стиле "Гарри Поттер и философский камень", Гарри Поттер варит зелье на фоне рабочего офиса, на заднем плане kanban доска, на стене висит пазл',
-    'Крокодил Гена': 'Валентинка с розовыми сердечками в стиле советского мультика, Чебурашка стоит на фоне рабочего офиса, на заднем плане kanban доска, на стене висит пазл'
+    'По-джидайски': 'Валентинка с розовыми сердечками в стиле звездных войн с Мастером Йодой, на фоне рабочего офиса, на заднем плане kanban доска, на стене розовые сердечки',
+    'По-славянски': 'Иллюстрация, изображающая сердечки, солнце и цветы в стиле славянских картин Максима Кулешовва сердечки в центре занимают главную роль',
+    'По-хулигански': 'Картинка подъездной стены с нацарапанным сердечком на ней, хулиганы'
 } as const;
 
 export const eventScene = new Scene<BotContext>(SCENE.EVENT)
@@ -36,23 +36,22 @@ eventScene.always().setup((scene) => {
     /**
      * On
      */
-
+    scene.on('message').filter(isThisChatMemberHasNotInDB, handleWriteChatMemberInDB)
     /**
      * Command
      */
 })
 
 eventScene.label(EVENT_LABELS.START).step(async (ctx) => {
-    await ctx.reply('Поздравьте свою вторую половинку с помощью искусственного интеллекта Kandinsky и Giga Chat!')
+    await ctx.reply('Привет! Я НейроВалентин трайба DCB! Я помогу тебе поздравить коллег с Днём Святого Валентина с помощью Gigachat и Kandinsky от лица любимых киногероев. Выбери его!')
 })
 
 eventScene.label(EVENT_LABELS.CHOOSE_EVENT_THEME).step(async (ctx) => {
     const board = setupKeyboard([...EVENT_THEME, ...CANCEL])
-    await ctx.reply('Выберите стиль в котором вы хотели бы поздравить', {
+    await ctx.reply('Как вы бы хотели поздравить коллегу?', {
         reply_markup: {
             ...board,
             resize_keyboard: true,
-            remove_keyboard: true
         }
     })
 })
@@ -71,7 +70,7 @@ eventScene.wait(EVENT_LABELS.WAIT_CHOOSE_THEME).on('message:text', async (ctx) =
     const keyboard = setupKeyboard(CANCEL)
 
     ctx.session.event.theme = ctx.message.text
-    await ctx.reply(`Вы выбрали тему ${ctx.message.text}`, {
+    await ctx.reply(`Вы выбрали ${ctx.message.text}`, {
         reply_markup: {
             ...keyboard,
             resize_keyboard: true
@@ -85,39 +84,22 @@ eventScene.label(EVENT_LABELS.CHOOSE_NAME).step(async (ctx) => {
 })
 
 eventScene.wait(EVENT_LABELS.WAIT_CHOOSE_NAME).on('message:text', async (ctx) => {
-    const board = setupKeyboard(CANCEL)
-
     ctx.session.event.name = ctx.message.text
-    await ctx.reply(`Поздравление для ${ctx.message.text}`, {
-        reply_markup: {
-            ...board,
-            resize_keyboard: true,
-            one_time_keyboard: true
-        }
-    })
+    await ctx.reply(`Поздравление для ${ctx.message.text}`)
     ctx.scene.resume()
 })
 
 eventScene.label(EVENT_LABELS.START_PROMPT_TEXT).step(async (ctx) => {
-    await ctx.reply('Опишите, за что вы цените свою половинку, начиная с "Я ценю тебя за"')
+    await ctx.reply('Опишите, за что вы цените своего коллегу, начиная с "Я ценю тебя за"')
 })
 
 eventScene.wait(EVENT_LABELS.WAIT_PROMPT_TEXT).on('message:text', async (ctx) => {
-    if (!ctx.message.text.startsWith('Я ценю тебя за')) {
+    if (!ctx.message.text.toLowerCase().startsWith('я ценю тебя за')) {
         await ctx.reply('Пожалуйста, начните с "Я ценю тебя за"')
         return;
     }
-    const board = setupKeyboard(CANCEL)
-
     ctx.session.event.prompt = ctx.message.text
-    await ctx.reply(`Отлично, ваш запрос: ${ctx.message.text}`, {
-        reply_markup: {
-            ...board,
-            one_time_keyboard: true,
-            remove_keyboard: true,
-            resize_keyboard: true
-        }
-    })
+    await ctx.reply(`Отлично, ваш запрос: ${ctx.message.text}`)
     ctx.scene.resume()
 })
 
@@ -133,7 +115,7 @@ eventScene.label(EVENT_LABELS.GET_AI_RESPONSE).step(async (ctx) => {
         return;
 
     }
-    await ctx.reply('Запрос на генерацию отправлен, ожидайте ответа!', {
+    await ctx.reply('Запрос на генерацию отправлен, ожидайте ответа! В среднем, генерация занимает 1-2 минуты, но из-за очереди запросов могут быть задержки.', {
         reply_markup: {
             remove_keyboard: true
         }
@@ -143,12 +125,29 @@ eventScene.label(EVENT_LABELS.GET_AI_RESPONSE).step(async (ctx) => {
         prompt: KANDINSKY_PROMPT[theme],
         style: 'DEFAULT',
     }
-    const GIGA_PROMPT = {
-        'Звездные войны': `Представь, что ты Магистр Йода из "Звездных Войн" и переделай текст для ${ctx.session.event.name} "${ctx.session.event.prompt}" используя знаменитые фразы Магистра Йоды`,
-        'Гарри Поттер': `Представь, что ты эльф Добби из фильма Гарри Поттер и переделай текст для ${ctx.session.event.name} "${ctx.session.event.prompt}" используя цитаты из фильма Гарри Поттер`,
-        'Крокодил Гена': `Представь, что ты Чебурашка и переделай текст для ${ctx.session.event.name} "${ctx.session.event.prompt}" используя цитаты Чебурашки`
-    }
 
+    const GIGA_PROMPT = {
+        'По-джидайски': `Представь, что ты Магистр Йода из "Звездных Войн" и перепиши текст для ${ctx.session.event.name} "${ctx.session.event.prompt}" используя стилистику ответов Магистра Йоды. ПРИМЕРЫ ОТВЕТОВ В СТИЛЕ МАГИСТРА ЙОДЫ:\n
+Темная сторона манит. Но кто раз стал на темную тропу, по ней и будет идти всегда. Поглотит она вас, как поглотила ученика Оби-Вана Кеноби.\n
+Решение принимаешь ты один. Но помнить должен, что делаешь это также и за других, кто стоит за плечом твоим.\n
+Гнев, страх, агрессия – это темные стороны силы. Легко приходят они, быстро присоединяются к схватке. Стерегись их.Тяжела цена за мощь, которую они дают.\n
+
+ВАЖНО: Твой ответ должен быть задумчивым и философским."`,
+
+        'По-славянски': `Представь что ты говоришь на древнерусском. Перепиши текст для ${ctx.session.event.name} "${ctx.session.event.prompt}" используя стилистику ответов в старорусском стиле. ПРИМЕРЫ ОТВЕТОВ В СТИЛЕ ДРЕВНЕРУССКОЙ РЕЧИ: \nЗемнаго не сведая и небесных пытаешиЕдин есть раб во всяком дому — сам господин.\n Вещати умеют мнози, а разумети не вси.\n Уне есть человеку добра смерть, негли злой живот.\n ВАЖНО: Твой ответ должен быть задумчивым и философским`,
+
+        'По-хулигански': `Представь что ты уличный хулиган. Перепиши текст для ${ctx.session.event.name} "${ctx.session.event.prompt}" используя стилистику ответов на уличном жаргоне. ПРИМЕРЫ ОТВЕТОВ В СТИЛЕ УЛИЧНОГО ХУЛИГАНА:\n
+
+старший\n
+стрём\n
+внатуре \n
+слышь\n
+понял\n
+фраер\n
+впадлу \n
+
+ВАЖНО: Твой ответ должен быть блатным и дерзким`
+    }
 
     const gigaChatData: IGigaChatMessages[] = [
         {
@@ -165,7 +164,7 @@ eventScene.label(EVENT_LABELS.GET_AI_RESPONSE).step(async (ctx) => {
         KandinskyServices.getKandinsky(kandinskyData),
         GigaChatServices.getGigaChat({messages: gigaChatData})
     ]).then(async (result) => {
-        const board = setupKeyboard(GEN_ANSWERS)
+        const board = setupKeyboard([...GEN_ANSWERS, ...CANCEL])
         const [kandinsky, giga] = result
         const [photo] = kandinsky
 
@@ -180,7 +179,7 @@ eventScene.label(EVENT_LABELS.GET_AI_RESPONSE).step(async (ctx) => {
                 reply_markup: {
                     ...board,
                     one_time_keyboard: true,
-                    remove_keyboard: true
+                    resize_keyboard: true
                 }
             })
         } else {
@@ -189,7 +188,6 @@ eventScene.label(EVENT_LABELS.GET_AI_RESPONSE).step(async (ctx) => {
                 reply_markup: {
                     one_time_keyboard: true,
                     resize_keyboard: true,
-                    remove_keyboard: true,
                     ...errorBoard
                 }
             })
@@ -216,16 +214,28 @@ eventScene.wait(EVENT_LABELS.WAIT_GENERATION).on('message:text', async (ctx) => 
 
 
 eventScene.label(EVENT_LABELS.CHOOSE_LOGIN).step(async (ctx) => {
-    await ctx.reply('Введите логин в Telegram без "@", кому хотите отправить открытку')
+    const board = setupKeyboard(['Телефон', 'Логин'])
+    await ctx.reply('Теперь мне нужно предоставить номер телефона коллеги или его логин в Telegram. Что вы предоставите?', {
+        reply_markup: {
+            ...board,
+            one_time_keyboard: true,
+            resize_keyboard: true
+        }
+    })
 })
 
-eventScene.wait(EVENT_LABELS.WAIT_LOGIN).on('message:text', async (ctx) => {
-    if (ctx.message.text.startsWith('@')) {
-        await ctx.reply('Пожалуйста, введите логин без "@"')
-        return;
-    }
-    ctx.session.event.login = ctx.message.text
-    ctx.scene.resume()
+eventScene.wait(EVENT_LABELS.WAIT_LOGIN).setup((scene) => {
+    scene.hears('Телефон', async (ctx) => {
+        await ctx.reply('Введите телефон начиная с +7 дальше без символов, только цифры!')
+        ctx.scene.goto(EVENT_LABELS.PRE_PHONE)
+    })
+    scene.hears('Логин', async (ctx) => {
+        await ctx.reply('Введите логин в Telegram без "@"')
+        ctx.scene.goto(EVENT_LABELS.PRE_LOGIN)
+    })
+    scene.on('message:text', async (ctx) => {
+        await ctx.reply('Пожалуйста, выберите один из вариантов!')
+    })
 })
 
 eventScene.label(EVENT_LABELS.WITH_ANONYMITY).step(async (ctx) => {
@@ -234,8 +244,7 @@ eventScene.label(EVENT_LABELS.WITH_ANONYMITY).step(async (ctx) => {
         reply_markup: {
             ...board,
             one_time_keyboard: true,
-            remove_keyboard: true,
-            resize_keyboard: true
+            resize_keyboard: true,
         }
     })
 })
@@ -252,7 +261,6 @@ eventScene.wait(EVENT_LABELS.WAIT_ANONYMITY_ANSWER).on('message:text', async (ct
             reply_markup: {
                 ...board,
                 one_time_keyboard: true,
-                remove_keyboard: true,
                 resize_keyboard: true
             }
         })
@@ -260,29 +268,55 @@ eventScene.wait(EVENT_LABELS.WAIT_ANONYMITY_ANSWER).on('message:text', async (ct
 })
 
 eventScene.label(EVENT_LABELS.SEND_REQUEST).step(async (ctx) => {
-    const userLogin: number | undefined = userDataBase.JSON()[ctx.session.event.login!]
-    if (userLogin) {
-        await ctx.reply(`Отлично! Открытка отправлена пользователю ${ctx.session.event.login}`)
-        await ctx.api.sendPhoto(userLogin, new InputFile(ctx.session.event.picture!))
-        await ctx.api.sendMessage(userLogin, ctx.session.event.prompt!)
-        ctx.session.event.isShowWhoSend && await ctx.api.sendMessage(userLogin, `От пользователя ${ctx.session.event.author}`)
-    } else {
-        await ctx.reply(`Не получилось отправить открытку!\n\nПредложите ${ctx.session.event.login} перейти в личный чат со мной и ввести команду /get_cards, что бы получить её!`)
-    }
-    const user = eventDataBase.get(ctx.session.event.login as string) ?? []
-    const newUserData = {
-        file_id: ctx.session.event.file_id,
-        text: ctx.session.event.prompt,
-        isMessageSend: !!userLogin,
-        from: ctx.session.event.author,
-        isShowAuthor: ctx.session.event.isShowWhoSend
+    try {
+        const user = eventDataBase.get(ctx.session.event.login as string) ?? []
+        const newUserData = {
+            file_id: ctx.session.event.file_id,
+            text: ctx.session.event.prompt,
+            isMessageSend: false,
+            from: ctx.session.event.author,
+            isShowAuthor: ctx.session.event.isShowWhoSend
+        }
+
+        let newData = [...user, newUserData];
+        eventDataBase.set(ctx.session.event.login as string, newData)
+        await ctx.reply('Все готово! Далее вам нужно пригласить коллегу в чат со мной, и предложить ему ввести команду /get_cards, что бы получить свою открытку!', {
+            reply_markup: {
+                remove_keyboard: true
+            }
+        })
+    } catch (err) {
+        await ctx.reply('Что-то пошло не так, пожалуйста попробуйте заново!', {
+            reply_markup: {
+                remove_keyboard: true
+            }
+        })
     }
 
-    let newData = [...user, newUserData];
-    eventDataBase.set(ctx.session.event.login as string, newData)
 })
 
 eventScene.label(EVENT_LABELS.END).step(async (ctx) => {
     await ctx.reply('Генерация окончена! Если хотите отправить новую открытку, просто введите /event')
     ctx.scene.exit()
+})
+
+eventScene.label(EVENT_LABELS.PRE_PHONE)
+eventScene.wait(EVENT_LABELS.PHONE).on('message:text',async (ctx) => {
+    console.log(ctx.message.text)
+    if (!ctx.message.text.startsWith('+7') || ctx.message.text.match(/[()\-\s]/gi)) {
+        await ctx.reply('Пожалуйста, введите телефон начиная с +7 дальше без символов, только цифры!')
+        return;
+    }
+    ctx.session.event.login = ctx.message?.text
+    ctx.scene.goto(EVENT_LABELS.WITH_ANONYMITY)
+})
+
+eventScene.label(EVENT_LABELS.PRE_LOGIN)
+eventScene.wait(EVENT_LABELS.LOGIN).on('message:text',async (ctx) => {
+    if (ctx.message?.text?.startsWith('@')) {
+        await ctx.reply('Пожалуйста, введите логин без "@"')
+        return;
+    }
+    ctx.session.event.login = ctx.message?.text
+    ctx.scene.goto(EVENT_LABELS.WITH_ANONYMITY)
 })

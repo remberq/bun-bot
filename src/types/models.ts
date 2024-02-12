@@ -18,6 +18,12 @@ export enum SLASH_COMMAND {
     GET_CARDS = '/get_cards'
 }
 
+export enum GET_CARDS_LABELS {
+    START = 'START',
+    REQUEST = 'REQUEST',
+    END = 'END'
+}
+
 export enum GIGA_LABELS {
     START = "START",
     CHANGE_ROLE = 'CHANGE_ROLE',
@@ -61,11 +67,16 @@ export enum EVENT_LABELS {
     WAIT_ANONYMITY_ANSWER = 'WAIT_ANONYMITY_ANSWER',
     SEND_REQUEST = 'SEND_REQUEST',
     WAIT_GENERATION = 'WAIT_GENERATION',
-    END = 'END'
+    END = 'END',
+    PRE_PHONE = 'PRE_PHONE',
+    PHONE = 'PHONE',
+    PRE_LOGIN = 'PRE_LOGIN',
+    LOGIN = 'LOGIN'
 }
 
 export enum SCENE {
     GIGA_CHAT = 'GIGA_CHAT',
     KANDINSKY = 'KANDINSKY',
-    EVENT = 'EVENT'
+    EVENT = 'EVENT',
+    GET_CARDS = 'GET_CARDS'
 }
