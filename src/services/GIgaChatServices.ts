@@ -22,7 +22,7 @@ export class GigaChatServices extends RequestServices {
         try {
             const response: AxiosResponse<IGigaAuth> = await axios.post(
                 process.env.GIGA_AUTH_URL,
-                { scope: 'GIGACHAT_API_PERS' },
+                { scope: 'GIGACHAT_API_CORP' },
                 config
             )
 

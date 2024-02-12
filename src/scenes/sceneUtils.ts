@@ -1,6 +1,7 @@
 import {SceneFlavoredContext} from "grammy-scenes";
 import {BotContext} from "../bot.ts";
 import {SLASH_COMMAND} from "../types/models.ts";
+import {userDataBase} from "../bootstrap.ts";
 
 /**
  * Возвращает флаг, того что введена неизвестная команда
@@ -27,4 +28,25 @@ export const unknownCommandText = async (ctx: SceneFlavoredContext<BotContext, u
           
           -- ${SLASH_COMMAND.EVENT}           --  Поздравьте свою половинку`)
     }
+}
+
+/**
+ * Проверяем что автор любого сообщения уже есть в базе данных и если нет - то прокидываем в функцию записи в базу данных
+ * @param ctx контекст сообщения
+ */
+export const isThisChatMemberHasNotInDB = async (ctx: BotContext): Promise<boolean> => {
+    const member = await ctx.getAuthor()
+
+    return !!member.user.id! && !userDataBase.has(`${member.user.id!}`)
+}
+
+/**
+ * Записываем в базу данных автора сообщения, если его еще там нет
+ * @param ctx контекст сообщения
+ */
+export const handleWriteChatMemberInDB = async (ctx: BotContext) => {
+    const member = await ctx.getAuthor()
+    console.log(`Успешно записан в базу пользователь ${member.user.username} с chatID ${member.user.id}`)
+    userDataBase.set(`${member.user.id!}`, {nick: member.user.username, isContactGet: false})
+
 }
