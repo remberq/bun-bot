@@ -57,7 +57,11 @@ getCardsScene.wait(GET_CARDS_LABELS.REQUEST).setup((scene) => {
 
         userDataBase.set(`${user_id}`, {...userData, phone: phone_number, isContactGet: true})
         console.log(`Контактные данные пользователя ${first_name} успешно записаны!`)
-        await ctx.reply('Данные записаны!')
+        await ctx.reply('Данные записаны!', {
+            reply_markup: {
+                remove_keyboard: true
+            }
+        })
         ctx.scene.goto(GET_CARDS_LABELS.START)
         return;
     })
