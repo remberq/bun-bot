@@ -54,8 +54,8 @@ getCardsScene.wait(GET_CARDS_LABELS.REQUEST).setup((scene) => {
     scene.on('message:contact', async (ctx) => {
         const {phone_number, user_id, first_name } = ctx.message.contact
         const userData = userDataBase.JSON()[`${user_id}`]
-
-        userDataBase.set(`${user_id}`, {...userData, phone: phone_number, isContactGet: true})
+        const phone = phone_number.startsWith('+') ? phone_number : `+${phone_number}`
+        userDataBase.set(`${user_id}`, {...userData, phone, isContactGet: true})
         console.log(`Контактные данные пользователя ${first_name} успешно записаны!`)
         await ctx.reply('Данные записаны!', {
             reply_markup: {
@@ -66,6 +66,11 @@ getCardsScene.wait(GET_CARDS_LABELS.REQUEST).setup((scene) => {
         return;
     })
     scene.hears('Отказаться', async (ctx) => {
+        await ctx.reply('Контакт не предоставлен!', {
+            reply_markup: {
+                remove_keyboard: true
+            }
+        })
         ctx.scene.goto(GET_CARDS_LABELS.END)
     })
     scene.on('message:text', async (ctx) => {
