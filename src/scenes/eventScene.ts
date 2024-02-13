@@ -42,10 +42,6 @@ eventScene.always().setup((scene) => {
      */
 })
 
-eventScene.label(EVENT_LABELS.START).step(async (ctx) => {
-    await ctx.reply('Привет! Я НейроВалентин трайба DCB! Я помогу тебе поздравить коллег с Днём Святого Валентина с помощью Gigachat и Kandinsky от лица любимых киногероев. Выбери его!')
-})
-
 eventScene.label(EVENT_LABELS.CHOOSE_EVENT_THEME).step(async (ctx) => {
     const board = setupKeyboard([...EVENT_THEME, ...CANCEL])
     await ctx.reply('Как вы бы хотели поздравить коллегу?', {
