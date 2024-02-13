@@ -63,7 +63,7 @@ const eventBotCommands: IBotCommandsArray[] = [
         command: COMMAND.START,
         cb: async (ctx) => {
             await dataBaseCheck(ctx)
-            await ctx.replyWithPhoto(new InputFile('../assets/start.png'))
+            await ctx.replyWithPhoto(new InputFile('./src/assets/start.png'))
             await ctx.reply('Привет! Я НейроВалентин — бот, умеющий в GigaChat и Kandinsky. Прояви свои нежные чувства к коллеге! Расскажи мне о его ценных качествах, а я сгенерирую для него нейровалентинку.' +
                 '\n\nЯ могу это сделать «по-старославѣнски», «по-пацански» и «по-джедайски». Выбирай стиль и нажимай event для генерации.\n' +
                 '\n\nПосле получения валентинки не пересылай ее адресату сразу.' +
