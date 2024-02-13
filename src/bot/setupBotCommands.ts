@@ -1,5 +1,5 @@
 import {BotContext} from "../bot.ts";
-import {Api, Bot, RawApi} from "grammy";
+import {Api, Bot, InputFile, RawApi} from "grammy";
 import {COMMAND, SCENE, SLASH_COMMAND} from "../types/models.ts";
 import {userDataBase} from "../bootstrap.ts";
 
@@ -63,8 +63,14 @@ const eventBotCommands: IBotCommandsArray[] = [
         command: COMMAND.START,
         cb: async (ctx) => {
             await dataBaseCheck(ctx)
-
-            await ctx.reply('Добро пожаловать в чат-бот GigaChat & Kandinsky!')
+            await ctx.replyWithPhoto(new InputFile('../assets/start.png'))
+            await ctx.reply('Привет! Я НейроВалентин — бот, умеющий в GigaChat и Kandinsky. Прояви свои нежные чувства к коллеге! Расскажи мне о его ценных качествах, а я сгенерирую для него нейровалентинку.' +
+                '\n\nЯ могу это сделать «по-старославянски», «по-пацански» и «по-джедайски». Выбирай стиль и нажимай event для генерации.\n' +
+                '\n\nПосле получения валентинки не пересылай ее адресату сразу.' +
+                '\nЕсли получившаяся открытка тебе понравилась, нажми «продолжить» и введи номер телефона или ник адресата в Telegram.' +
+                '\nЕсли нет, нажми «сгенерировать заново», и я пришлю новый вариант.' +
+                '\n\nЧтобы проверить, есть ли адресованные тебе нейровалентинки, нажми «получить свои открытки» в меню и попытайся угадать, кто из коллег её отправил.'
+            )
             await ctx.reply('Доступны следующие команды:' +
                 '\n\n  -- /event          --  Поздравьте своего коллегу' +
                 '\n\n  -- /get_cards   --  Получить свои открытки'
