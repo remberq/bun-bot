@@ -81,14 +81,14 @@ const eventBotCommands: IBotCommandsArray[] = [
         command: COMMAND.EVENT,
         cb: async (ctx) => {
             await dataBaseCheck(ctx)
-            await ctx.scenes.enter(SCENE.HOLD)
+            await ctx.scenes.enter(SCENE.EVENT)
         }
     },
     {
         command: COMMAND.GET_CARDS,
         cb: async (ctx) => {
             await dataBaseCheck(ctx)
-            await ctx.scenes.enter(SCENE.HOLD)
+            await ctx.scenes.enter(SCENE.GET_CARDS)
         }
     },
 ]
