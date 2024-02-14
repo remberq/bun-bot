@@ -195,9 +195,14 @@ eventScene.wait(EVENT_LABELS.WAIT_GENERATION).on('message:text', async (ctx) => 
         ctx.scene.goto(EVENT_LABELS.CHOOSE_EVENT_THEME)
         return;
     }
-    await ctx.reply('Пожалуйста, дождитесь генерации!')
+    const board = setupKeyboard(CANCEL)
+    await ctx.reply('Пожалуйста, дождитесь генерации! Если открытка не генерируется очень долго, введите "Начать заново" и попробуйте снова!', {
+        reply_markup: {
+            ...board,
+            one_time_keyboard: true
+        }
+    })
 })
-
 
 eventScene.label(EVENT_LABELS.CHOOSE_LOGIN).step(async (ctx) => {
     const board = setupKeyboard(['Телефон', 'Логин'])
