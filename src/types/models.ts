@@ -78,5 +78,6 @@ export enum SCENE {
     GIGA_CHAT = 'GIGA_CHAT',
     KANDINSKY = 'KANDINSKY',
     EVENT = 'EVENT',
-    GET_CARDS = 'GET_CARDS'
+    GET_CARDS = 'GET_CARDS',
+    HOLD = 'HOLD'
 }
