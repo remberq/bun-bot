@@ -12,7 +12,7 @@ import {eventDataBase} from "../bootstrap.ts";
 
 const CANCEL = ['Начать заново']
 const EVENT_THEME = ['По-джедайски', 'По-старославѣнски']
-const GEN_ANSWERS = ['Продолжить', 'Сгенерировать заново', 'Изменить данные']
+const GEN_ANSWERS = ['Отправить валентинку', 'Сгенерировать заново', 'Изменить данные']
 const ANO_ANSWER = ['Указать', 'Не указывать']
 const KANDINSKY_PROMPT = {
     'По-джедайски': 'Валентинка с розовыми сердечками в стиле звездных войн с Мастером Йодой, на фоне рабочего офиса, на заднем плане kanban доска, на стене розовые сердечки',
@@ -158,7 +158,7 @@ eventScene.label(EVENT_LABELS.GET_AI_RESPONSE).step(async (ctx) => {
             const photoMessage = await ctx.replyWithPhoto(new InputFile(photo))
             await ctx.reply(`${giga.choices[0].message.content}`)
             ctx.session.event.file_id = photoMessage.photo.find((photo) => photo.width === 1024)?.file_id
-            await ctx.reply('Вам нравится? Или что-то переделать?', {
+            await ctx.reply('Вам нравится? Или что-то переделать? Если вы хотите отправить эту валентинку, нажмите «Отправить валентинку»', {
                 reply_markup: {
                     ...board,
                     one_time_keyboard: true,
@@ -180,7 +180,7 @@ eventScene.label(EVENT_LABELS.GET_AI_RESPONSE).step(async (ctx) => {
 })
 
 eventScene.wait(EVENT_LABELS.WAIT_GENERATION).on('message:text', async (ctx) => {
-    if (ctx.message.text === 'Продолжить') {
+    if (ctx.message.text === 'Отправить валентинку') {
         ctx.scene.resume()
         return;
     }
